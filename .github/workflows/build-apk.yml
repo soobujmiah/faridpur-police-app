@@ -43,7 +43,7 @@ jobs:
         run: flutter pub get
 
       - name: Scaffold Android platform
-        run: flutter create --platforms=android --org com.onskillit .
+        run: flutter create --platforms=android --org com.onskillit --project-name faridpurpolice .
 
       - name: Apply Android manifest and launch background overrides
         run: |
