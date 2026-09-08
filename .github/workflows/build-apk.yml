@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python (placeholder asset generation)
+      - name: Set up Python (asset generation)
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -23,8 +23,8 @@ jobs:
       - name: Install Pillow
         run: pip install Pillow
 
-      - name: Generate placeholder icon/logo
-        run: python3 tools/generate_placeholder_assets.py
+      - name: Generate app icon/logo from source artwork
+        run: python3 tools/generate_app_assets.py
 
       - name: Set up Java
         uses: actions/setup-java@v4

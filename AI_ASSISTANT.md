@@ -57,8 +57,11 @@ detection, pull-to-refresh, and exit confirmation.
   build tooling in this environment.
 - If a change requires a new binary asset (icon, image, font), either add a
   generation step to the CI workflow (Python/Pillow, matching the existing
-  `tools/generate_placeholder_assets.py` pattern) or ask the owner for the
-  real file — do not generate or fetch binary assets locally.
+  `tools/generate_app_assets.py` pattern) or ask the owner for the real file
+  — do not generate, resize, or fetch binary assets locally. Pulling a
+  source file the owner explicitly names (e.g. from their device via `adb
+  pull`, scoped to that one file) and committing it unmodified is fine;
+  processing it (resize, crop, recompress) is not — that belongs in CI.
 
 ## Coding and dependency rules
 

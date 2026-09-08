@@ -48,18 +48,20 @@ boilerplate; it always matches whatever Flutter version the workflow pins.
 
 ## Assets
 
-`assets/icon.png` (launcher icon) and `assets/logo.png` (splash screen) are
-**placeholder** artwork — a simple generated shield glyph, not the
-department's real emblem — generated at CI build time by
-`tools/generate_placeholder_assets.py` (not committed as binary files). To
-ship with the official Faridpur Police emblem:
+The real Faridpur Police logo is committed once, at full resolution, as
+`assets_source/logo_source.png` (source of truth — never overwritten by
+tooling). `assets/icon.png` (launcher icon) and `assets/logo.png` (splash
+screen) are **derived from it at CI build time** by
+`tools/generate_app_assets.py`, not committed as binaries themselves:
 
-1. Replace the placeholder script's output by committing real
-   `assets/icon.png` (square, ≥1024×1024) and `assets/logo.png` files, and
-   remove the "Generate placeholder icon/logo" step from
-   `.github/workflows/build-apk.yml`, **or**
-2. Keep the CI-generation step but point it at the real artwork files
-   instead of the procedural shield.
+- `assets/logo.png` — the source logo capped to 512px on its long edge,
+  background/transparency untouched, used on the splash screen.
+- `assets/icon.png` — the source logo letterboxed onto a 1024×1024 square
+  in the brand color (`#0A3D91`), since Android launcher icons must be
+  square and the source artwork isn't guaranteed to be.
+
+To update the logo, replace `assets_source/logo_source.png` with the new
+file (same name) and push — no other changes needed.
 
 ## Build
 
