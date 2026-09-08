@@ -31,7 +31,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   void initState() {
     super.initState();
     _pullToRefreshController = PullToRefreshController(
-      options: PullToRefreshOptions(color: AppColors.primary),
+      settings: PullToRefreshSettings(color: AppColors.primary),
       onRefresh: () async {
         await _controller?.reload();
       },
@@ -70,6 +70,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       await _controller!.goBack();
       return false;
     }
+    if (!mounted) return false;
     return showExitConfirmDialog(context);
   }
 
@@ -108,8 +109,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     mediaPlaybackRequiresUserGesture: false,
                     allowFileAccess: true,
                     allowContentAccess: true,
-                    useOnGeolocationPermissionsShowPrompt: true,
-                    useOnPermissionRequest: true,
                     useHybridComposition: true,
                   ),
                   pullToRefreshController: _pullToRefreshController,
