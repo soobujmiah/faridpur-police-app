@@ -1,0 +1,174 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+
+import '../theme/app_colors.dart';
+import '../widgets/exit_dialog.dart';
+import '../widgets/offline_view.dart';
+
+const String kSiteUrl = 'https://faridpurpolice.top';
+
+class WebViewScreen extends StatefulWidget {
+  const WebViewScreen({super.key});
+
+  @override
+  State<WebViewScreen> createState() => _WebViewScreenState();
+}
+
+class _WebViewScreenState extends State<WebViewScreen> {
+  InAppWebViewController? _controller;
+  late final PullToRefreshController _pullToRefreshController;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
+  bool _isOffline = false;
+  bool _isLoading = true;
+  bool _hasShownPullHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pullToRefreshController = PullToRefreshController(
+      options: PullToRefreshOptions(color: AppColors.primary),
+      onRefresh: () async {
+        await _controller?.reload();
+      },
+    );
+    _checkConnectivity();
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((results) {
+      final offline = results.every((r) => r == ConnectivityResult.none);
+      if (offline != _isOffline) {
+        setState(() => _isOffline = offline);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final results = await Connectivity().checkConnectivity();
+    final offline = results.every((r) => r == ConnectivityResult.none);
+    if (mounted) setState(() => _isOffline = offline);
+  }
+
+  Future<void> _retry() async {
+    await _checkConnectivity();
+    if (!_isOffline) {
+      await _controller?.reload();
+    }
+  }
+
+  Future<bool> _handleBack() async {
+    if (_controller != null && await _controller!.canGoBack()) {
+      await _controller!.goBack();
+      return false;
+    }
+    return showExitConfirmDialog(context);
+  }
+
+  void _maybeShowPullHint() {
+    if (_hasShownPullHint) return;
+    _hasShownPullHint = true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('রিলোড করতে নিচে টানুন'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldExit = await _handleBack();
+        if (shouldExit && context.mounted) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Stack(
+            children: [
+              if (!_isOffline)
+                InAppWebView(
+                  initialUrlRequest: URLRequest(url: WebUri(kSiteUrl)),
+                  initialSettings: InAppWebViewSettings(
+                    javaScriptEnabled: true,
+                    geolocationEnabled: true,
+                    mediaPlaybackRequiresUserGesture: false,
+                    allowFileAccess: true,
+                    allowContentAccess: true,
+                    useOnGeolocationPermissionsShowPrompt: true,
+                    useOnPermissionRequest: true,
+                    useHybridComposition: true,
+                  ),
+                  pullToRefreshController: _pullToRefreshController,
+                  onWebViewCreated: (controller) => _controller = controller,
+                  onLoadStart: (controller, url) {
+                    setState(() => _isLoading = true);
+                  },
+                  onLoadStop: (controller, url) async {
+                    _pullToRefreshController.endRefreshing();
+                    setState(() => _isLoading = false);
+                    _maybeShowPullHint();
+                  },
+                  onReceivedError: (controller, request, error) {
+                    _pullToRefreshController.endRefreshing();
+                    if (request.isForMainFrame ?? true) {
+                      setState(() => _isLoading = false);
+                    }
+                  },
+                  onProgressChanged: (controller, progress) {
+                    if (progress == 100) {
+                      _pullToRefreshController.endRefreshing();
+                    }
+                  },
+                  onGeolocationPermissionsShowPrompt: (controller, origin) async {
+                    return GeolocationPermissionShowPromptResponse(
+                      origin: origin,
+                      allow: true,
+                      retain: true,
+                    );
+                  },
+                  onPermissionRequest: (controller, request) async {
+                    return PermissionResponse(
+                      resources: request.resources,
+                      action: PermissionResponseAction.GRANT,
+                    );
+                  },
+                ),
+              if (!_isOffline && _isLoading)
+                Container(
+                  color: Colors.white,
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(color: AppColors.primary),
+                        SizedBox(height: 16),
+                        Text(
+                          'লোড হচ্ছে...',
+                          style: TextStyle(fontSize: 14, color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (_isOffline) OfflineView(onRetry: _retry),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Matches the Dart-drawn splash screen background so there is no white
+     flash between the native launch window and SplashScreen's first frame. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/white" />
+    <item>
+        <color android:color="#FF0A3D91"/>
+    </item>
+</layer-list>

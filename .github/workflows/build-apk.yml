@@ -1,0 +1,70 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python (placeholder asset generation)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Pillow
+        run: pip install Pillow
+
+      - name: Generate placeholder icon/logo
+        run: python3 tools/generate_placeholder_assets.py
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Scaffold Android platform
+        run: flutter create --platforms=android --org com.onskillit .
+
+      - name: Apply Android manifest and launch background overrides
+        run: |
+          cp android_template/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          cp android_template/launch_background.xml android/app/src/main/res/drawable/launch_background.xml
+          if [ -f android/app/src/main/res/drawable-v21/launch_background.xml ]; then
+            cp android_template/launch_background.xml android/app/src/main/res/drawable-v21/launch_background.xml
+          fi
+
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: faridpur-police-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
