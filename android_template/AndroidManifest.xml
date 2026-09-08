@@ -12,7 +12,7 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
 
     <application
-        android:label="Faridpur Police"
+        android:label="Faridpur Police App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

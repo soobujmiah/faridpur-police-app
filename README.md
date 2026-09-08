@@ -21,7 +21,7 @@ the latest run of **Build APK** under the Actions tab for build status.
 
 | Area | Behavior |
 |---|---|
-| App name | Faridpur Police |
+| App name | Faridpur Police App |
 | Package | `com.onskillit.faridpurpolice` |
 | Primary color | `#0A3D91` |
 | Splash | 3s, logo + Bangla title + "Powered by Onskill-iT" subtitle |
