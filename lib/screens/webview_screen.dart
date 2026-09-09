@@ -4,12 +4,25 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_colors.dart';
 import '../widgets/exit_dialog.dart';
 import '../widgets/offline_view.dart';
 
 const String kSiteUrl = 'https://faridpurpolice.top';
+
+/// Schemes/hosts that the WebView should NOT handle internally — they belong
+/// to other apps (dialer, WhatsApp, contact save) and are routed out via
+/// `url_launcher` instead.
+bool _isExternalLink(String url) {
+  final lower = url.toLowerCase();
+  return lower.startsWith('tel:') ||
+      lower.startsWith('mailto:') ||
+      lower.startsWith('sms:') ||
+      lower.contains('wa.me/') ||
+      lower.contains('api.whatsapp.com');
+}
 
 class WebViewScreen extends StatefulWidget {
   const WebViewScreen({super.key});
@@ -85,6 +98,38 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 
+  Future<void> _openExternal(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _showFallback('অ্যাপ খোলা যাচ্ছে না: $url');
+      }
+    } catch (e) {
+      _showFallback('লিংক খুলতে সমস্যা হয়েছে');
+    }
+  }
+
+  void _showFallback(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<NavigationActionPolicy?> _handleNavigation(
+    InAppWebViewController controller,
+    NavigationAction navigationAction,
+  ) async {
+    final url = navigationAction.request.url?.toString() ?? '';
+    if (url.isNotEmpty && _isExternalLink(url)) {
+      _openExternal(url);
+      return NavigationActionPolicy.CANCEL;
+    }
+    return NavigationActionPolicy.ALLOW;
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -113,6 +158,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   ),
                   pullToRefreshController: _pullToRefreshController,
                   onWebViewCreated: (controller) => _controller = controller,
+                  shouldOverrideUrlLoading: _handleNavigation,
                   onLoadStart: (controller, url) {
                     setState(() => _isLoading = true);
                   },
