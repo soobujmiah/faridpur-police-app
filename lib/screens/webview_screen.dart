@@ -148,7 +148,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     String contentDisposition,
     String mimeType,
   ) {
-    final match = RegExp(r'filename[^;=\n]*=((["\']).*?\2|[^;\n]*)')
+    final match = RegExp(r'filename[^;=\n]*=([^;\n]*)')
         .firstMatch(contentDisposition);
     if (match != null) {
       return match.group(1)?.replaceAll('"', '').trim() ?? 'download';
