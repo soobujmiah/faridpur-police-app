@@ -130,6 +130,69 @@ class _WebViewScreenState extends State<WebViewScreen> {
     return NavigationActionPolicy.ALLOW;
   }
 
+  void _handleDownload(
+    InAppWebViewController controller,
+    DownloadStartRequest request,
+  ) {
+    final url = request.url.toString();
+    final contentDisposition = request.contentDisposition ?? '';
+    final mimeType = request.mimeType ?? '';
+    final suggestedFilename = request.suggestedFilename ??
+        _filenameFromUrl(url, contentDisposition, mimeType);
+
+    _startDownload(url, suggestedFilename);
+  }
+
+  String _filenameFromUrl(
+    String url,
+    String contentDisposition,
+    String mimeType,
+  ) {
+    final match = RegExp(r'filename[^;=\n]*=((["\']).*?\2|[^;\n]*)')
+        .firstMatch(contentDisposition);
+    if (match != null) {
+      return match.group(1)?.replaceAll('"', '').trim() ?? 'download';
+    }
+    final uri = Uri.tryParse(url);
+    final last = uri?.pathSegments.isNotEmpty == true
+        ? uri!.pathSegments.last
+        : 'download';
+    if (last.contains('.')) return last;
+    if (mimeType.contains('vcard') || mimeType.contains('vcf')) {
+      return '$last.vcf';
+    }
+    return last;
+  }
+
+  Future<void> _startDownload(String url, String filename) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        _showDownloadSnack('ডাউনলোড শুরু হয়েছে: $filename');
+      } else {
+        _showFallback('ডাউনলোড শুরু করা যাচ্ছে না');
+      }
+    } catch (e) {
+      _showFallback('ডাউনলোডে সমস্যা হয়েছে');
+    }
+  }
+
+  void _showDownloadSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: 'খুলুন',
+          onPressed: () {
+            // Best-effort: open Downloads folder
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -155,10 +218,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     allowFileAccess: true,
                     allowContentAccess: true,
                     useHybridComposition: true,
+                    supportMultipleWindows: true,
+                    useOnDownloadStart: true,
                   ),
                   pullToRefreshController: _pullToRefreshController,
                   onWebViewCreated: (controller) => _controller = controller,
                   shouldOverrideUrlLoading: _handleNavigation,
+                  onDownloadStartRequest: _handleDownload,
                   onLoadStart: (controller, url) {
                     setState(() => _isLoading = true);
                   },
